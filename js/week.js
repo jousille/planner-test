@@ -17,6 +17,7 @@ const WeekScreen = (() => {
   function render() {
     const el = document.getElementById('screen-week');
 
+    const p=MonthScreen.period(state.week,state.week);
     const weekScore = DB.getWeekScore(state.week);
     const dayScores = Array.from({ length: 7 }, (_, i) => DB.getDayScore(state.week, i + 1));
     const maxAbs = Math.max(1, ...dayScores.map(Math.abs));
@@ -51,48 +52,24 @@ const WeekScreen = (() => {
 
       <div class="page-content">
 
-        <div class="section-label">Общая картина</div>
-
-        <div class="stat-grid">
-          <div class="stat-card">
-            <div class="sc-label">Баланс недели</div>
-            <div class="sc-value ${weekScore >= 0 ? 'pos' : 'neg'}">${scoreDisp}</div>
-            <div class="sc-sub">${countTasks(state.week)} дел записано</div>
-          </div>
-          <div class="stat-card">
-            <div class="sc-label">Лучший день</div>
-            <div class="sc-value" style="font-size:18px; padding-top:4px">${DAYS_SHORT[bestDayIdx]}</div>
-            <div class="sc-sub">${dayScores[bestDayIdx] > 0 ? '+' : ''}${dayScores[bestDayIdx]} энергии</div>
-          </div>
-        </div>
-
-        <div class="bar-chart">
-          <div class="bc-label">Энергия по дням</div>
-          <div class="bc-bars">
-            ${dayScores.map((s, i) => {
-              const pct = maxAbs > 0 ? Math.round((Math.abs(s) / maxAbs) * 100) : 0;
-              const cls = s > 0 ? 'pos' : s < 0 ? 'neg' : 'zero';
-              const hi  = state.highlightDay === i + 1 ? 'hi' : '';
-              return `<div class="bc-col">
-                <div class="bc-outer"><div class="bc-bar ${cls} ${hi}" style="height:${pct}%"></div></div>
-                <span class="bc-day">${DAYS_SHORT[i]}</span>
-              </div>`;
-            }).join('')}
-          </div>
-        </div>
-
-        <div class="section-label">Вампиры недели</div>
+        <div class="section-label">01 / Энергия недели</div>
+        ${MonthScreen.balance(p)}
+        <div class="section-label">02 / Как прошла неделя</div>
+        ${MonthScreen.chart(Array.from({length:7},(_,i)=>p.days.find(d=>d.d===i+1)?.total??null),Array.from({length:7},(_,i)=>DB.parseDate(DB.dateForDay(state.week,i+1)).toLocaleDateString('ru-RU',{weekday:'short'})))}
+        <div class="section-label">03 / Что истощало</div>
         ${renderVD(vampires, 'neg', 'Забирали энергию')}
 
-        <div class="section-label">Доноры недели</div>
+        <div class="section-label">Что наполняло</div>
         ${renderVD(donors, 'pos', 'Давали энергию')}
 
-        ${MonthScreen.renderSphereEnergy(DB.getSphereEnergy(state.week,state.week))}
+        <div class="section-label">04 / Мои привычки</div>
+        ${MonthScreen.habitsReview(p)}
+        <details class="review-card"><summary>Подробнее по сферам жизни</summary>${MonthScreen.renderSphereEnergy(DB.getSphereEnergy(state.week,state.week),true)}</details>
         <div class="section-label">Рефлексия</div>
         ${WEEK_QUESTIONS.map(({ key, q }) => `
           <div class="reflection-card">
             <div class="ref-q">${q}</div>
-            <textarea class="ref-input" data-key="${key}" placeholder="Напишите своё наблюдение...">${refl[key] || ''}</textarea>
+            <textarea class="ref-input" data-key="${key}" placeholder="Напишите своё наблюдение...">${escHtml(refl[key] || '')}</textarea>
           </div>
         `).join('')}
 
