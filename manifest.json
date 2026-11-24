@@ -1,6 +1,6 @@
 {
-  "name": "Planner TEST — Дневник энергии",
-  "short_name": "Planner TEST",
+  "name": "Дневник энергии и привычек — TEST",
+  "short_name": "Дневник TEST",
   "description": "Изолированная тестовая версия Планера",
   "start_url": "./",
   "scope": "./",
