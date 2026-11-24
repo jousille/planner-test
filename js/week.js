@@ -25,8 +25,8 @@ const WeekScreen = (() => {
     const bestDayIdx  = dayScores.indexOf(Math.max(...dayScores));
     const worstDayIdx = dayScores.indexOf(Math.min(...dayScores));
 
-    const vampires = DB.getWeekVampires(state.week, 5);
-    const donors   = DB.getWeekDonors(state.week, 5);
+    const vampires = DB.getActiveSources(state.week,state.week,'min');
+    const donors   = DB.getActiveSources(state.week,state.week,'max');
     const refl     = DB.getReflection('week', state.week);
 
     const scoreDisp = weekScore > 0 ? `+${weekScore}` : `${weekScore}`;
@@ -57,11 +57,8 @@ const WeekScreen = (() => {
         ${MonthScreen.balance(p)}
         <div class="section-label">Как прошла неделя</div>
         ${MonthScreen.chart(Array.from({length:7},(_,i)=>p.days.find(d=>d.d===i+1)?.total??null),Array.from({length:7},(_,i)=>DB.parseDate(DB.dateForDay(state.week,i+1)).toLocaleDateString('ru-RU',{weekday:'short'})))}
-        <div class="section-label">Что истощало</div>
-        ${DB.settings().tasks&&DB.settings().habits?renderVD(vampires, 'neg', 'Забирали энергию'):''}
-
-        <div class="section-label">Что наполняло</div>
-        ${DB.settings().tasks&&DB.settings().habits?renderVD(donors, 'pos', 'Давали энергию'):''}
+        ${vampires.length?'<div class="section-label">Что истощало</div>'+renderVD(vampires,'neg','Забирали энергию'):''}
+        ${donors.length?'<div class="section-label">Что наполняло</div>'+renderVD(donors,'pos','Давали энергию'):''}
 
         </div>
         <div ${DB.settings().habits?'':'hidden'}>
@@ -71,7 +68,7 @@ const WeekScreen = (() => {
         <div ${DB.settings().energy&&DB.settings().spheres&&DB.settings().tasks&&DB.settings().habits?'':'hidden'}>
         <details class="review-card"><summary>Подробнее по сферам жизни</summary>${MonthScreen.renderSphereEnergy(DB.getSphereEnergy(state.week,state.week),true)}</details>
         </div>
-        <div ${DB.settings().energy&&DB.settings().tasks&&DB.settings().habits?'':'hidden'}>
+        <div ${DB.settings().energy?'':'hidden'}>
         <div class="section-label">Наблюдения недели</div>
         <div class="review-card">${observations(p,donors,vampires)}</div>
         </div>

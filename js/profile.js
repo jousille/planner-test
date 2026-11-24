@@ -56,7 +56,7 @@ const ProfileScreen = (() => {
       <div class="profile-section">
 
         <div class="section-label">Настройка дневника</div>
-        <div class="review-card"><p>Выберите, что хотите вести. Отключение не удаляет записи.</p>
+        <div class="review-card"><div class="settings-intro"><strong>Выберите, что хотите вести.</strong><span>Отключение не удаляет записи.</span></div>
         ${[['tasks','Дела и события'],['habits','Трекер привычек'],['energy','Учёт энергии'],['spheres','Сферы жизни'],['reflection','Заметки и рефлексия']].map(([k,v])=>'<label class="setting-row"><span>'+v+'</span><input type="checkbox" data-setting="'+k+'" '+(settings[k]?'checked':'')+'></label>').join('')}
         <label class="setting-row"><span>Стартовый экран</span><select id="settings-start">${[['day','Дневник'],['habits','Привычки'],['week','Неделя'],['month','Месяц']].filter(([k])=>k!=='day'||settings.tasks).filter(([k])=>k!=='habits'||settings.habits).map(([k,v])=>'<option value="'+k+'" '+(settings.start===k?'selected':'')+'>'+v+'</option>').join('')}</select></label></div>
         <div class="section-label">Текущий месяц</div>

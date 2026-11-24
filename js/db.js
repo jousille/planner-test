@@ -130,6 +130,7 @@ const DB = (() => {
     return total;
   }
 
+  function getActiveSources(from,to,mode,limit=5){const s=settings();return s.energy?_getTopForWeeks(from,to,mode,limit,undefined,s):[];}
   function getWeekVampires(week, limit = 5) {
     return _getTopForWeeks(week, week, 'min', limit);
   }
@@ -146,7 +147,7 @@ const DB = (() => {
     return _getTopForWeeks(1, 4, 'max', limit, monthIdx);
   }
 
-  function _getTopForWeeks(weekFrom, weekTo, mode, limit, monthIdx) {
+  function _getTopForWeeks(weekFrom, weekTo, mode, limit, monthIdx, options) {
     const mi = monthIdx !== undefined ? monthIdx : getCurrentMonthIndex();
     let all = [];
 
@@ -154,7 +155,8 @@ const DB = (() => {
       for (let d = 1; d <= 7; d++) {
         const date = dateForDay(w,d,mi);
         const completed = date ? getCompletionsForDate(date) : {};
-        const entries = getTasks(w,d,mi).concat(getHabits().filter(h=>completed[h.id]).map(h=>({name:h.name,score:Number(h.energy)||0})));
+        if(options && (!date || date>localDate())) continue;
+        const entries = (options?.tasks===false?[]:getTasks(w,d,mi)).concat((options?.habits===false?[]:getHabits()).filter(h=>completed[h.id]).map(h=>({name:h.name,score:Number(h.energy)||0})));
         entries.forEach(t => {
           if (t.name && t.name.trim() && typeof t.score === 'number' && t.score !== 0) {
             all.push({ name: t.name.trim(), score: t.score });
@@ -469,7 +471,7 @@ const DB = (() => {
     getHabitsSphereStats,
     getReflection, saveReflection,
     getDayScore, getWeekScore, getSphereEnergy, getSpherePresence,
-    getWeekVampires, getWeekDonors,
+    getActiveSources, getWeekVampires, getWeekDonors,
     getMonthVampires, getMonthDonors,
     getTodayPosition,
     getCurrentMonthIndex,

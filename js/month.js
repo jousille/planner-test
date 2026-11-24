@@ -163,8 +163,8 @@ const MonthScreen = (() => {
     const worstWeekIdx = weekScores.indexOf(Math.min(...weekScores));
     const maxAbs = Math.max(1, ...weekScores.map(Math.abs));
 
-    const vampires   = DB.getMonthVampires(5);
-    const donors     = DB.getMonthDonors(5);
+    const vampires   = DB.getActiveSources(1,4,'min');
+    const donors     = DB.getActiveSources(1,4,'max');
     const refl       = DB.getReflection('month');
     const meta       = DB.getMeta();
     const sphereStats = DB.getHabitsSphereStats();
@@ -214,8 +214,8 @@ const MonthScreen = (() => {
         <div class="section-label">Привычки за месяц</div>
         ${habitsReview(p)}
         </div>
-        <div ${DB.settings().energy&&DB.settings().tasks&&DB.settings().habits?'':'hidden'}>
-        <details class="review-card"><summary>Источники энергии за месяц</summary>${renderVD(donors,'pos','Что наполняло')}${renderVD(vampires,'neg','Что истощало')}</details>
+        <div ${DB.settings().energy?'':'hidden'}>
+        ${donors.length||vampires.length?'<details class="review-card"><summary>Источники энергии за месяц</summary>'+(donors.length?renderVD(donors,'pos','Что наполняло'):'')+(vampires.length?renderVD(vampires,'neg','Что истощало'):'')+'</details>':''}
         <div class="section-label">Мои наблюдения</div>
         <div class="review-card">${p.days.length>=2?'<p>Самая ресурсная из заполненных дат: '+p.days.reduce((a,b)=>a.total>=b.total?a:b).date+' ('+fmt(Math.max(...p.days.map(d=>d.total)))+').</p>':'<p>Пока недостаточно оценок для сравнения.</p>'}${p.rows.length?'<p>Наиболее регулярная привычка: '+escHtml([...p.rows].sort((a,b)=>b.pct-a.pct)[0].name)+'.</p>':''}</div>
         </div>
