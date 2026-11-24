@@ -18,118 +18,31 @@ const MonthScreen = (() => {
     '#6A8BB8', '#9B6AB8', '#B86A9B',
   ];
 
-  let presenceMode='all', presencePercent=false;
-  function renderPresence(){
-    const {days,stats}=DB.getSpherePresence();
-    const fmt=n=>presencePercent?(days?Math.round(n/days*100)+'%':'−'):n+' из '+days;
-    const pt=(r,i)=>[150+r*Math.sin(i*2*Math.PI/7),145-r*Math.cos(i*2*Math.PI/7)];
-    const points=SPHERES.map((s,i)=>pt(100*stats[s.id][presenceMode]/Math.max(1,days),i).join(',')).join(' ');
-    return '<div class="presence-controls">'+[['all','Всё'],['tasks','Дела и события'],['habits','Привычки']].map(([k,v])=>'<button type="button" data-presence="'+k+'" aria-pressed="'+(k===presenceMode)+'">'+v+'</button>').join('')+'</div>'+
-      '<div class="wheel-wrap"><svg viewBox="0 0 300 290" class="balance-wheel">'+[25,50,75,100].map(r=>'<circle cx="150" cy="145" r="'+r+'" fill="none" stroke="#B58E8E" stroke-opacity=".35"/>').join('')+
-      SPHERES.map((s,i)=>{const [x,y]=pt(100,i);return '<line x1="150" y1="145" x2="'+x+'" y2="'+y+'" stroke="#B58E8E" stroke-opacity=".35"/>';}).join('')+
-      '<polygon points="'+points+'" fill="#B58E8E" fill-opacity=".25" stroke="#B58E8E" stroke-width="1.5"/>'+
-      SPHERES.map((s,i)=>{const [x,y]=pt(125,i);return '<text x="'+x+'" y="'+y+'" text-anchor="middle" font-size="17">'+s.emoji+'</text><text x="'+x+'" y="'+(y+14)+'" text-anchor="middle" font-size="10" fill="#B58E8E">'+stats[s.id][presenceMode]+' дн.</text>';}).join('')+'</svg></div>'+
-      '<div class="presence-controls"><span>'+days+' дней цикла</span><button type="button" data-presence-unit aria-pressed="'+presencePercent+'">'+(presencePercent?'В днях':'В процентах')+'</button></div>'+
-      SPHERES.map(s=>{const n=stats[s.id][presenceMode];return '<div class="sphere-stat-row"><span class="ssr-emoji">'+s.emoji+'</span><div class="ssr-body"><div class="ssr-top"><span class="ssr-name">'+s.name+'</span><span class="ssr-pct">'+fmt(n)+'</span></div><div class="ssr-track"><div class="ssr-fill" style="background:#B58E8E;width:'+(100*n/Math.max(1,days))+'%"></div></div></div></div>';}).join('');
-  }
-  function bindPresence(){
-    const el=document.getElementById('month-presence');
-    if(!el)return;
-    el.querySelectorAll('[data-presence]').forEach(b=>b.onclick=()=>{presenceMode=b.dataset.presence;el.innerHTML=renderPresence();bindPresence();});
-    el.querySelector('[data-presence-unit]').onclick=()=>{presencePercent=!presencePercent;el.innerHTML=renderPresence();bindPresence();};
-  }
-
-  function renderWheel(stats) {
-    const N = SPHERES.length;
-    const cx = 130, cy = 130;
-    const Rmax = 80, Rmin = 20;
-    const Rlabel = 100;
-    const step = (2 * Math.PI) / N;
-    const offset = -Math.PI / 2;
-
-    function pt(r, i) {
-      const a = offset + i * step;
-      return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  function collect(){
+    const s=DB.settings(), entries=[], recorded=new Set(), spheres=new Map(SPHERES.map(x=>[x.id,{...x,dates:new Set(),scores:[]}]));
+    const habits=s.habits?DB.getHabits():[];
+    for(let w=1;w<=4;w++)for(let d=1;d<=7;d++){
+      const date=DB.dateForDay(w,d);if(!date||date>DB.localDate())continue;
+      const comp=DB.getCompletionsForDate(date);
+      const rows=(s.tasks?DB.getTasks(w,d).map(t=>({...t,kind:'task'})):[]).concat(habits.filter(h=>comp[h.id]).map(h=>({...h,kind:'habit',score:h.energy})));
+      for(const t of rows){const name=String(t.name||'').trim();if(!name)continue;recorded.add(date);const score=s.energy&&typeof t.score==='number'&&Number.isFinite(t.score)?t.score:null;entries.push({name,kind:t.kind,date,score,sphereId:t.sphereId});const row=spheres.get(t.sphereId);if(row){row.dates.add(date);if(score!==null)row.scores.push(score);}}
     }
-
-    let html = '';
-
-    // Концентрические сетки
-    [0.25, 0.5, 0.75, 1].forEach(frac => {
-      const r = Rmin + (Rmax - Rmin) * frac;
-      const pts = Array.from({length: N}, (_, i) => pt(r, i));
-      const d = pts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(2) + ',' + p[1].toFixed(2)).join(' ') + 'Z';
-      html += `<path d="${d}" fill="none" stroke="rgba(213,184,184,${frac === 1 ? '.25' : '.1'})" stroke-width="${frac === 1 ? 1 : 0.5}"/>`;
-    });
-
-    // Радиусные линии
-    for (let i = 0; i < N; i++) {
-      const [x1, y1] = pt(Rmin, i), [x2, y2] = pt(Rmax, i);
-      html += `<line x1="${x1.toFixed(2)}" y1="${y1.toFixed(2)}" x2="${x2.toFixed(2)}" y2="${y2.toFixed(2)}" stroke="rgba(213,184,184,.12)" stroke-width="0.5"/>`;
+    return {entries,recorded,spheres:[...spheres.values()]};
+  }
+  function observations(p,data){
+    const s=DB.settings(), out=[], groups=new Map();
+    for(const e of data.entries){if(e.score===null)continue;const key=e.kind+':'+e.name.toLocaleLowerCase('ru');if(!groups.has(key))groups.set(key,{name:e.name,rows:[]});groups.get(key).rows.push(e);}
+    const g=[...groups.values()].filter(x=>new Set(x.rows.map(e=>e.date)).size>=3);
+    for(const sign of [1,-1]){
+      const candidates=g.map(x=>({...x,n:x.rows.filter(e=>e.score*sign>0).length,sum:x.rows.reduce((a,e)=>a+e.score,0)})).filter(x=>x.n/x.rows.length>=.75&&x.sum*sign>0).sort((a,b)=>sign*(b.sum-a.sum));
+      if(candidates.length){const x=candidates[0];out.push([sign>0?'Что наполняет':'Что истощает',x.name+': '+x.n+' из '+x.rows.length+' оценок '+(sign>0?'положительные':'отрицательные')+'.','Баланс '+fmt(x.sum)+'; оценки минимум в 3 разных дня.']);}
     }
-
-    // Заполненная область
-    const fillPts = SPHERES.map((s, i) => {
-      const pct = (stats[s.id]?.pct ?? 0) / 100;
-      const r = Rmin + (Rmax - Rmin) * Math.max(0.03, pct);
-      return pt(r, i);
-    });
-    const fillD = fillPts.map((p, i) => (i === 0 ? 'M' : 'L') + p[0].toFixed(2) + ',' + p[1].toFixed(2)).join(' ') + 'Z';
-    html += `<path d="${fillD}" fill="rgba(181,142,142,.2)" stroke="rgba(181,142,142,.7)" stroke-width="1.5"/>`;
-
-    // Точки на вершинах
-    SPHERES.forEach((s, i) => {
-      if (!stats[s.id]?.total) return;
-      const pct = (stats[s.id]?.pct ?? 0) / 100;
-      const r = Rmin + (Rmax - Rmin) * Math.max(0.03, pct);
-      const [x, y] = pt(r, i);
-      html += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="4" fill="${SPHERE_COLORS[i]}" stroke="var(--dark)" stroke-width="1.5"/>`;
-    });
-
-    // Эмодзи снаружи
-    SPHERES.forEach((s, i) => {
-      const [x, y] = pt(Rlabel, i);
-      html += `<text x="${x.toFixed(1)}" y="${(y + 5).toFixed(1)}" text-anchor="middle" font-size="15">${s.emoji}</text>`;
-    });
-
-    // Центр
-    const totals = Object.values(stats).reduce((a,s)=>({done:a.done+s.done,total:a.total+s.total}),{done:0,total:0});
-    const avg = totals.total ? Math.round(100*totals.done/totals.total)+'%' : '−';
-    html += `<circle cx="${cx}" cy="${cy}" r="${Rmin}" fill="var(--dark)"/>`;
-    html += `<text x="${cx}" y="${cy - 4}" text-anchor="middle" font-size="7" fill="#B58E8E" font-family="var(--font-sans)" letter-spacing="1">ВСЕГО</text>`;
-    html += `<text x="${cx}" y="${cy + 11}" text-anchor="middle" font-size="15" font-weight="500" fill="var(--lighter)" font-family="var(--font-sans)">${avg}</text>`;
-
-    return `
-      <div class="wheel-wrap">
-        <svg viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg" class="balance-wheel">
-          ${html}
-        </svg>
-      </div>
-    `;
+    if(s.energy){const a=period(1,2),b=period(3,4);if(a.dates.length===14&&b.dates.length===14&&a.days.length>=7&&b.days.length>=7){const x=a.total/a.days.length,y=b.total/b.days.length;if(Math.abs(y-x)>=1)out.push(['Динамика энергии','Средний баланс оценённых дней '+(y>x?'вырос':'снизился')+' с '+fmt(Math.round(x*10)/10)+' до '+fmt(Math.round(y*10)/10)+'.','Первая и вторая половины цикла: '+a.days.length+' и '+b.days.length+' оценённых дней.']);}}
+    if(s.habits&&p.dates.length>=14){const rows=p.rows.filter(h=>h.total>=4);const best=rows.filter(h=>h.pct>=80).sort((a,b)=>b.pct-a.pct)[0],low=rows.filter(h=>h.pct<=40).sort((a,b)=>a.pct-b.pct)[0];if(best)out.push(['Регулярность привычек',best.name+': выполнено '+best.done+' из '+best.total+' запланированных выполнений.','Регулярность '+best.pct+'%.']);if(low)out.push(['График привычек',low.name+': выполнено '+low.done+' из '+low.total+' запланированных выполнений.','Можно пересмотреть удобство графика; регулярность '+low.pct+'%.']);}
+    if(s.spheres){const dates=new Set(data.spheres.flatMap(x=>[...x.dates]));if(dates.size>=7){const rows=data.spheres.filter(x=>x.dates.size).sort((a,b)=>b.dates.size-a.dates.size);const top=rows.filter(x=>x.dates.size===rows[0].dates.size);out.push(['Моё внимание',top.map(x=>x.name).join(', ')+' − чаще всего в записях: '+top[0].dates.size+' дн.','Учитываются уникальные дни, а не количество записей.']);}}
+    return out.slice(0,5);
   }
-
-  function renderSphereList(stats) {
-    return SPHERES.map((s, i) => {
-      const st  = stats[s.id] || { done: 0, total: 0, pct: 0 };
-      const color = SPHERE_COLORS[i];
-      return `
-        <div class="sphere-stat-row">
-          <span class="ssr-emoji">${s.emoji}</span>
-          <div class="ssr-body">
-            <div class="ssr-top">
-              <span class="ssr-name">${s.name}</span>
-              <span class="ssr-pct">${st.total ? st.pct+'%' : '−'}</span>
-            </div>
-            <div class="ssr-track">
-              <div class="ssr-fill" style="width:${st.pct}%; background:${color}"></div>
-            </div>
-            <div class="ssr-sub">${st.total ? `${st.done} из ${st.total} отметок` : 'Нет данных'}</div>
-          </div>
-        </div>
-      `;
-    }).join('');
-  }
-
+  function sphereList(data){const s=DB.settings();return data.spheres.map(x=>'<div class="review-habit"><span>'+x.emoji+' '+x.name+'</span><span>'+x.dates.size+' дн.'+(s.energy?' · '+(x.scores.length?fmt(x.scores.reduce((a,b)=>a+b,0)):'−'):'')+'</span></div>').join('')+'<div class="sc-sub">Дни присутствия в записях, не оценка качества жизни.</div>';}
   function period(from=1,to=4){
     const days=[],dates=[];let tasks=0,marks=0,positive=0,negative=0;
     const settings=DB.settings();const habits=settings.habits?DB.getHabits():[];
@@ -154,7 +67,7 @@ const MonthScreen = (() => {
   function render() {
     const el = document.getElementById('screen-month');
 
-    const p=period();
+    const p=period(), data=collect(), insights=observations(p,data), settings=DB.settings();
     const weekScores = [1,2,3,4].map(w => DB.getWeekScore(w));
     const monthScore = weekScores.reduce((s, v) => s + v, 0);
     const totalTasks = (() => { let n = 0; for (let w=1;w<=4;w++) for (let d=1;d<=7;d++) n+=DB.getTasks(w,d).length; return n; })();
@@ -180,45 +93,22 @@ const MonthScreen = (() => {
       <div class="page-header">
         <div class="eyebrow">Итоги</div>
         <div class="title">${capitalize(monthName)}</div>
-        <div class="subtitle">${totalTasks} записей · 4 недели</div>
-      </div>
-
-      <div class="strip">
-        ${[1,2,3,4].map(w => {
-          const s = weekScores[w-1];
-          const cls = s > 0 ? 'pos' : s < 0 ? 'neg' : '';
-          const lbl = s > 0 ? `+${s}` : s === 0 ? '·' : `${s}`;
-          return `<div class="strip-pill">
-            <span class="p-name">Нед ${w}</span>
-            <span class="p-score ${cls}">${lbl}</span>
-          </div>`;
-        }).join('')}
+        <div class="subtitle">${data.recorded.size} дней с записями · 4 недели</div>
       </div>
 
       <div class="page-content">
-
-        <div class="section-label">Месяц в цифрах</div>
-        ${DB.settings().energy?balance(p):''}
-        <div class="stat-grid"><div class="stat-card" ${DB.settings().tasks?'':'hidden'}><div class="sc-label">Записей за период</div><div class="sc-value">${p.tasks}</div></div><div class="stat-card" ${DB.settings().habits?'':'hidden'}><div class="sc-label">Отметок привычек</div><div class="sc-value">${p.marks}</div></div></div>
-        <div ${DB.settings().energy?'':'hidden'}>
-        <div class="section-label">Динамика энергии</div>
-        ${chart([1,2,3,4].map(w=>{const x=period(w,w);return !x.dates.length?undefined:x.days.length?x.total:null;}),['Нед 1','Нед 2','Нед 3','Нед 4'])}
+        <div class="section-label">Главное за месяц</div>
+        <div class="stat-grid">
+        ${settings.energy?'<div class="stat-card"><div class="sc-label">Баланс энергии</div><div class="sc-value">'+fmt(p.days.length?p.total:null)+'</div></div>':''}
+        ${settings.habits?'<div class="stat-card"><div class="sc-label">Регулярность привычек</div><div class="sc-value">'+(p.pct===null?'−':p.pct+'%')+'</div></div>':''}
         </div>
-        <div ${DB.settings().spheres&&DB.settings().tasks&&DB.settings().habits?'':'hidden'}>
-        <div class="section-label">Колесо сфер жизни</div>
-        <div class="sc-sub">В какие дни сферы присутствовали в моей жизни</div>
-        <div id="month-presence">${renderPresence()}</div>
-        ${renderSphereEnergy(DB.getSphereEnergy(), true)}
-        </div>
-        <div ${DB.settings().habits?'':'hidden'}>
-        <div class="section-label">Привычки за месяц</div>
-        ${habitsReview(p)}
-        </div>
-        <div ${DB.settings().energy?'':'hidden'}>
-        ${donors.length||vampires.length?'<details class="review-card"><summary>Источники энергии за месяц</summary>'+(donors.length?renderVD(donors,'pos','Что наполняло'):'')+(vampires.length?renderVD(vampires,'neg','Что истощало'):'')+'</details>':''}
-        <div class="section-label">Мои наблюдения</div>
-        <div class="review-card">${p.days.length>=2?'<p>Самая ресурсная из заполненных дат: '+p.days.reduce((a,b)=>a.total>=b.total?a:b).date+' ('+fmt(Math.max(...p.days.map(d=>d.total)))+').</p>':'<p>Пока недостаточно оценок для сравнения.</p>'}${p.rows.length?'<p>Наиболее регулярная привычка: '+escHtml([...p.rows].sort((a,b)=>b.pct-a.pct)[0].name)+'.</p>':''}</div>
-        </div>
+        <div class="sc-sub">Записи в ${data.recorded.size} из ${p.dates.length} дней</div>
+        <div class="section-label">Что я узнала о себе</div>
+        <div class="review-card">${insights.length?insights.map(([title,body,proof])=>'<div class="month-insight"><div class="sc-label">'+escHtml(title)+'</div><p>'+escHtml(body)+'</p><details><summary>На основании чего?</summary><div class="sc-sub">'+escHtml(proof)+'</div></details></div>').join(''):'<p>Пока недостаточно записей для устойчивых наблюдений.</p>'}</div>
+        <div class="section-label">Подробнее о моём месяце</div>
+        ${settings.energy?'<details class="review-card"><summary>Энергия</summary>'+balance(p)+chart([1,2,3,4].map(w=>{const x=period(w,w);return !x.dates.length?undefined:x.days.length?x.total:null;}),['Нед 1','Нед 2','Нед 3','Нед 4'])+(donors.length?renderVD(donors,'pos','Что наполняло'):'')+(vampires.length?renderVD(vampires,'neg','Что истощало'):'')+'</details>':''}
+        ${settings.spheres?'<details class="review-card"><summary>Сферы жизни</summary>'+sphereList(data)+'</details>':''}
+        ${settings.habits?'<details class="review-card"><summary>Привычки</summary>'+habitsReview(p)+'</details>':''}
         <div ${DB.settings().reflection?'':'hidden'}>
         <div class="section-label">Завершая месяц</div>
         ${[{key:'insight_v2',q:'Что я поняла о себе?'},{key:'more_less_v2',q:'Чего хочется больше, а чего меньше?'},{key:'focus_v2',q:'Мой фокус на следующий месяц'}].map(({key,q})=>'<div class="reflection-card"><div class="ref-q">'+q+'</div><textarea class="ref-input" data-key="'+key+'" placeholder="Можно оставить пустым">'+escHtml(refl[key]||'')+'</textarea></div>').join('')}
@@ -228,7 +118,7 @@ const MonthScreen = (() => {
       </div>
     `;
 
-    bindPresence();
+
     // Автосохранение рефлексии
     document.querySelectorAll('#screen-month .ref-input[data-key]').forEach(ta => {
       ta.addEventListener('input', () => {
