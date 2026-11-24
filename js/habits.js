@@ -226,7 +226,7 @@ const HabitsScreen = (() => {
         <div id="hab-weekdays" hidden class="schedule-days">${DAYS_SHORT.map((d,i)=>'<label><input type="checkbox" value="'+i+'">'+d+'</label>').join('')}</div>
         <div id="hab-target-wrap" hidden><label>Раз в неделю</label><select id="hab-target">${Array.from({length:7},(_,i)=>'<option '+(i===2?'selected':'')+' value="'+(i+1)+'">'+(i+1)+'</option>').join('')}</select></div>
         <label>Дата начала</label><input type="date" id="hab-start" value="${DB.localDate()}" min="${DB.localDate()}">
-        <label>Энергия за выполнение</label>
+        <label class="energy-detail">Энергия за выполнение</label>
         <div class="energy-chips" id="hab-energy-chips">${energyChips}</div>
         <button class="modal-btn" onclick="HabitsScreen.saveHabit()">Добавить</button>
       </div>`;
@@ -263,7 +263,7 @@ const HabitsScreen = (() => {
     const sphereEl = document.querySelector('#hab-sphere-chips .sphere-chip.selected');
     const energyEl = document.querySelector('#hab-energy-chips .energy-chip.selected');
     const sphereId = sphereEl ? sphereEl.dataset.sphere : SPHERES[0].id;
-    const energy   = energyEl ? parseInt(energyEl.dataset.val) : 3;
+    const energy   = DB.settings().energy?(energyEl ? parseInt(energyEl.dataset.val) : 3):0;
     const schedule=document.getElementById('hab-schedule').value;
     const weekdays=[...document.querySelectorAll('#hab-weekdays input:checked')].map(x=>Number(x.value));
     if(schedule==='days'&&!weekdays.length){alert('Выберите хотя бы один день недели');return;}

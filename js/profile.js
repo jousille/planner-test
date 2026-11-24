@@ -37,6 +37,7 @@ const ProfileScreen = (() => {
 
   function renderProfile() {
     const meta   = DB.getMeta();
+    const settings=DB.settings();
     const token  = DB.getToken();
     const pos    = DB.getTodayPosition();
     const monthN = (meta.currentMonth || 0) + 1;
@@ -54,6 +55,10 @@ const ProfileScreen = (() => {
     content.innerHTML = `
       <div class="profile-section">
 
+        <div class="section-label">Настройка дневника</div>
+        <div class="review-card"><p>Выберите, что хотите вести. Отключение не удаляет записи.</p>
+        ${[['tasks','Дела и события'],['habits','Трекер привычек'],['energy','Учёт энергии'],['spheres','Сферы жизни'],['reflection','Заметки и рефлексия']].map(([k,v])=>'<label class="setting-row"><span>'+v+'</span><input type="checkbox" data-setting="'+k+'" '+(settings[k]?'checked':'')+'></label>').join('')}
+        <label class="setting-row"><span>Стартовый экран</span><select id="settings-start">${[['day','Дневник'],['habits','Привычки'],['week','Неделя'],['month','Месяц']].filter(([k])=>k!=='day'||settings.tasks).filter(([k])=>k!=='habits'||settings.habits).map(([k,v])=>'<option value="'+k+'" '+(settings.start===k?'selected':'')+'>'+v+'</option>').join('')}</select></label></div>
         <div class="section-label">Текущий месяц</div>
         <div class="profile-row">
           <span class="pr-label">Месяц</span>
@@ -121,6 +126,8 @@ const ProfileScreen = (() => {
       </div>
     `;
 
+    content.querySelectorAll('[data-setting]').forEach(input=>input.onchange=()=>{const s=DB.settings();s[input.dataset.setting]=input.checked;if(!s.tasks&&!s.habits){input.checked=true;alert('Оставьте хотя бы один раздел для записей.');return;}if(s.start==='day'&&!s.tasks)s.start='habits';if(s.start==='habits'&&!s.habits)s.start='day';DB.setMeta({settings:s});App.refreshNav();renderProfile();});
+    content.querySelector('#settings-start').onchange=e=>DB.setMeta({settings:{...DB.settings(),start:e.target.value}});
     document.getElementById('start-date-input').addEventListener('change', e => {
       DB.setMeta({ startDate: e.target.value });
       DayScreen.initToday();

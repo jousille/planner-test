@@ -30,7 +30,7 @@ const DayScreen = (() => {
     const DAYS_SHORT_REAL = ['Вс','Пн','Вт','Ср','Чт','Пт','Сб'];
     const realDayName = DAYS_REAL[dayDate.getDay()];
     const tasks = DB.getTasks(state.week, state.day);
-    const breakdown = DB.getDayBreakdown(state.week, state.day);
+    const breakdown = DB.getDayBreakdown(state.week, state.day); if(!DB.settings().habits){breakdown.habits=0;breakdown.total=breakdown.tasks;}
     const dayScore = breakdown.total;
 
     const maxAbs = 50;
@@ -53,7 +53,7 @@ const DayScreen = (() => {
           const pillDate = new Date(startDate);
           pillDate.setDate(startDate.getDate() + (state.week - 1) * 7 + i);
           const pillDay = DAYS_SHORT_REAL[pillDate.getDay()];
-          const s = DB.getDayScore(state.week, i + 1);
+          const b=DB.getDayBreakdown(state.week,i+1);const s=DB.settings().habits?b.total:b.tasks;
           const cls = s > 0 ? 'pos' : s < 0 ? 'neg' : '';
           const lbl = s > 0 ? `+${s}` : s === 0 ? '·' : `${s}`;
           return `<button class="strip-pill ${i + 1 === state.day ? 'active' : ''}" data-day="${i + 1}">
@@ -72,7 +72,7 @@ const DayScreen = (() => {
       </div>
 
       <div class="page-content">
-        <div class="section-label">Дела и события: ${breakdown.tasks > 0 ? "+" : ""}${breakdown.tasks} · Привычки: +${breakdown.habits}</div>
+        <div class="section-label energy-detail">Дела и события: ${breakdown.tasks > 0 ? "+" : ""}${breakdown.tasks} ${DB.settings().habits?'· Привычки: +'+breakdown.habits:''}</div>
         <div class="section-label">Дела и события</div>
         <div class="task-list" id="task-list">
           ${renderTasks(tasks)}
@@ -86,7 +86,7 @@ const DayScreen = (() => {
         </button>` : ''}
 
         ${tasks.length < 14 ? '<button type="button" class="library-open" id="task-library">Выбрать из библиотеки</button>' : ''}
-        ${renderHabitsSection(DB.localDate(dayDate))}
+        ${DB.settings().habits?renderHabitsSection(DB.localDate(dayDate)):''}
       </div>
     `;
 

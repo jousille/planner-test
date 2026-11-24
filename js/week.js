@@ -52,24 +52,34 @@ const WeekScreen = (() => {
 
       <div class="page-content">
 
+        <div ${DB.settings().energy?'':'hidden'}>
         <div class="section-label">Энергия недели</div>
         ${MonthScreen.balance(p)}
         <div class="section-label">Как прошла неделя</div>
         ${MonthScreen.chart(Array.from({length:7},(_,i)=>p.days.find(d=>d.d===i+1)?.total??null),Array.from({length:7},(_,i)=>DB.parseDate(DB.dateForDay(state.week,i+1)).toLocaleDateString('ru-RU',{weekday:'short'})))}
         <div class="section-label">Что истощало</div>
-        ${renderVD(vampires, 'neg', 'Забирали энергию')}
+        ${DB.settings().tasks&&DB.settings().habits?renderVD(vampires, 'neg', 'Забирали энергию'):''}
 
         <div class="section-label">Что наполняло</div>
-        ${renderVD(donors, 'pos', 'Давали энергию')}
+        ${DB.settings().tasks&&DB.settings().habits?renderVD(donors, 'pos', 'Давали энергию'):''}
 
+        </div>
+        <div ${DB.settings().habits?'':'hidden'}>
         <div class="section-label">Мои привычки</div>
         ${MonthScreen.habitsReview(p)}
+        </div>
+        <div ${DB.settings().energy&&DB.settings().spheres&&DB.settings().tasks&&DB.settings().habits?'':'hidden'}>
         <details class="review-card"><summary>Подробнее по сферам жизни</summary>${MonthScreen.renderSphereEnergy(DB.getSphereEnergy(state.week,state.week),true)}</details>
+        </div>
+        <div ${DB.settings().energy&&DB.settings().tasks&&DB.settings().habits?'':'hidden'}>
         <div class="section-label">Наблюдения недели</div>
         <div class="review-card">${observations(p,donors,vampires)}</div>
+        </div>
+        <div ${DB.settings().reflection?'':'hidden'}>
         <div class="section-label">Заметка недели · необязательно</div>
         <div class="reflection-card"><textarea class="ref-input" data-key="note" placeholder="Что хочется запомнить об этой неделе?">${escHtml(refl.note||'')}</textarea></div>
         ${WEEK_QUESTIONS.some(q=>refl[q.key])?'<details class="review-card"><summary>Предыдущие ответы</summary>'+WEEK_QUESTIONS.filter(q=>refl[q.key]).map(q=>'<div class="ref-q">'+q.q+'</div><textarea class="ref-input" data-key="'+q.key+'">'+escHtml(refl[q.key])+'</textarea>').join('')+'</details>':''}
+        </div>
 
       </div>
     `;

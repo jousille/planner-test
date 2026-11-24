@@ -255,6 +255,7 @@ const DB = (() => {
     localStorage.setItem(key('meta'), JSON.stringify(meta));
   }
 
+  function settings(){const s=getMeta().settings||{};return {tasks:s.tasks!==false,habits:s.habits!==false,energy:s.energy!==false,spheres:s.spheres!==false,reflection:s.reflection!==false,start:['day','habits','week','month'].includes(s.start)?s.start:'day'};}
   function getToken() { return _token; }
 
   // ── Удалить месяц из архива ───────────────────────────────────
@@ -460,7 +461,7 @@ const DB = (() => {
   }
 
   return {
-    SPHERES, LIBRARY, normalizeSphere, init, getToken, localDate, parseDate, dateForDay, getDayBreakdown, isHabitEligible, habitProgress,
+    settings, SPHERES, LIBRARY, normalizeSphere, init, getToken, localDate, parseDate, dateForDay, getDayBreakdown, isHabitEligible, habitProgress,
     getTasks, saveTasks, addTask, updateTask, deleteTask,
     getHabits, saveHabits, addHabit, deleteHabit, archiveHabit,
     getCompletionsForWeek, toggleCompletion,

@@ -132,10 +132,10 @@ const MonthScreen = (() => {
 
   function period(from=1,to=4){
     const days=[],dates=[];let tasks=0,marks=0,positive=0,negative=0;
-    const habits=DB.getHabits();
+    const settings=DB.settings();const habits=settings.habits?DB.getHabits():[];
     for(let w=from;w<=to;w++)for(let d=1;d<=7;d++){
       const date=DB.dateForDay(w,d);if(!date||date>DB.localDate())continue;
-      dates.push(date);const entries=DB.getTasks(w,d).filter(t=>String(t.name||'').trim());tasks+=entries.length;
+      dates.push(date);const entries=(settings.tasks?DB.getTasks(w,d):[]).filter(t=>String(t.name||'').trim());tasks+=entries.length;
       const comp=DB.getCompletionsForDate(date),done=habits.filter(h=>comp[h.id]);marks+=done.length;
       const scores=entries.filter(t=>t.score!==null&&t.score!==undefined).map(t=>Number(t.score)||0).concat(done.map(h=>Number(h.energy)||0));
       if(scores.length){const total=scores.reduce((a,b)=>a+b,0);days.push({w,d,date,total});for(const n of scores){positive+=Math.max(0,n);negative+=Math.max(0,-n);}}
@@ -198,22 +198,32 @@ const MonthScreen = (() => {
       <div class="page-content">
 
         <div class="section-label">Месяц в цифрах</div>
-        ${balance(p)}
-        <div class="stat-grid"><div class="stat-card"><div class="sc-label">Записей за период</div><div class="sc-value">${p.tasks}</div></div><div class="stat-card"><div class="sc-label">Отметок привычек</div><div class="sc-value">${p.marks}</div></div></div>
+        ${DB.settings().energy?balance(p):''}
+        <div class="stat-grid"><div class="stat-card" ${DB.settings().tasks?'':'hidden'}><div class="sc-label">Записей за период</div><div class="sc-value">${p.tasks}</div></div><div class="stat-card" ${DB.settings().habits?'':'hidden'}><div class="sc-label">Отметок привычек</div><div class="sc-value">${p.marks}</div></div></div>
+        <div ${DB.settings().energy?'':'hidden'}>
         <div class="section-label">Динамика энергии</div>
         ${chart([1,2,3,4].map(w=>{const x=period(w,w);return x.days.length?x.total:null;}),['Нед 1','Нед 2','Нед 3','Нед 4'])}
+        </div>
+        <div ${DB.settings().spheres&&DB.settings().tasks&&DB.settings().habits?'':'hidden'}>
         <div class="section-label">Колесо сфер жизни</div>
         <div class="sc-sub">В какие дни сферы присутствовали в моей жизни</div>
         <div id="month-presence">${renderPresence()}</div>
         ${renderSphereEnergy(DB.getSphereEnergy(), true)}
+        </div>
+        <div ${DB.settings().habits?'':'hidden'}>
         <div class="section-label">Привычки за месяц</div>
         ${habitsReview(p)}
+        </div>
+        <div ${DB.settings().energy&&DB.settings().tasks&&DB.settings().habits?'':'hidden'}>
         <details class="review-card"><summary>Источники энергии за месяц</summary>${renderVD(donors,'pos','Что наполняло')}${renderVD(vampires,'neg','Что истощало')}</details>
         <div class="section-label">Мои наблюдения</div>
         <div class="review-card">${p.days.length>=2?'<p>Самая ресурсная из заполненных дат: '+p.days.reduce((a,b)=>a.total>=b.total?a:b).date+' ('+fmt(Math.max(...p.days.map(d=>d.total)))+').</p>':'<p>Пока недостаточно оценок для сравнения.</p>'}${p.rows.length?'<p>Наиболее регулярная привычка: '+escHtml([...p.rows].sort((a,b)=>b.pct-a.pct)[0].name)+'.</p>':''}</div>
+        </div>
+        <div ${DB.settings().reflection?'':'hidden'}>
         <div class="section-label">Завершая месяц</div>
         ${[{key:'insight_v2',q:'Что я поняла о себе?'},{key:'more_less_v2',q:'Чего хочется больше, а чего меньше?'},{key:'focus_v2',q:'Мой фокус на следующий месяц'}].map(({key,q})=>'<div class="reflection-card"><div class="ref-q">'+q+'</div><textarea class="ref-input" data-key="'+key+'" placeholder="Можно оставить пустым">'+escHtml(refl[key]||'')+'</textarea></div>').join('')}
         ${MONTH_QUESTIONS.some(q=>refl[q.key])?'<details class="review-card"><summary>Предыдущие ответы</summary>'+MONTH_QUESTIONS.filter(q=>refl[q.key]).map(q=>'<div class="ref-q">'+q.q+'</div><textarea class="ref-input" data-key="'+q.key+'">'+escHtml(refl[q.key])+'</textarea>').join('')+'</details>':''}
+        </div>
 
       </div>
     `;
