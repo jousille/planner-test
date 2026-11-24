@@ -64,7 +64,7 @@ const ProfileScreen = (() => {
           <span class="pr-value">${startDate}</span>
         </div>
         <div class="profile-row">
-          <span class="pr-label">Дел записано</span>
+          <span class="pr-label">Записей за период</span>
           <span class="pr-value">${totalTasks}</span>
         </div>
         <div class="profile-row">
@@ -215,13 +215,13 @@ const ProfileScreen = (() => {
         <div class="guide-block">
           <div class="guide-step-num">01</div>
           <div class="guide-step-title">Что это такое?</div>
-          <div class="guide-step-text">Планер помогает отслеживать, какие дела забирают вашу энергию, а какие восполняют. За месяц вы увидите закономерности и сможете осознанно управлять своим ресурсом.</div>
+          <div class="guide-step-text">Планер помогает отслеживать, какие дела и события забирают вашу энергию, а какие восполняют. За месяц вы увидите закономерности и сможете осознанно управлять своим ресурсом.</div>
         </div>
 
         <div class="guide-block">
           <div class="guide-step-num">02</div>
           <div class="guide-step-title">Шкала энергии</div>
-          <div class="guide-step-text">После каждого дела оцените как оно повлияло на вашу энергию:</div>
+          <div class="guide-step-text">После каждого дела или события оцените, как оно повлияло на вашу энергию:</div>
           <div class="guide-scores">
             <div class="gs-row"><span class="gs-chip chip-n10">−10</span><span class="gs-label">Полностью опустошило</span></div>
             <div class="gs-row"><span class="gs-chip chip-n5">−5</span><span class="gs-label">Заметно истощило</span></div>
@@ -236,7 +236,7 @@ const ProfileScreen = (() => {
         <div class="guide-block">
           <div class="guide-step-num">03</div>
           <div class="guide-step-title">Как заполнять</div>
-          <div class="guide-step-text">Каждый день записывайте дела которые занимали ваше время и внимание − встречи, задачи, активности, бытовые дела. Не обязательно всё, только значимое. Оценивайте честно − не как «должно быть», а как было на самом деле. Энергия дня складывается из энергии дел и выполненных привычек; обе составляющие показаны отдельно.</div>
+          <div class="guide-step-text">Каждый день записывайте дела и события, которые занимали ваше время и внимание − встречи, задачи, активности, бытовые дела. Не обязательно всё, только значимое. Оценивайте честно − не как «должно быть», а как было на самом деле. Энергия дня складывается из энергии дел и выполненных привычек; обе составляющие показаны отдельно.</div>
         </div>
 
         <div class="guide-block">

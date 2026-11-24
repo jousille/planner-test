@@ -52,26 +52,24 @@ const WeekScreen = (() => {
 
       <div class="page-content">
 
-        <div class="section-label">01 / Энергия недели</div>
+        <div class="section-label">Энергия недели</div>
         ${MonthScreen.balance(p)}
-        <div class="section-label">02 / Как прошла неделя</div>
+        <div class="section-label">Как прошла неделя</div>
         ${MonthScreen.chart(Array.from({length:7},(_,i)=>p.days.find(d=>d.d===i+1)?.total??null),Array.from({length:7},(_,i)=>DB.parseDate(DB.dateForDay(state.week,i+1)).toLocaleDateString('ru-RU',{weekday:'short'})))}
-        <div class="section-label">03 / Что истощало</div>
+        <div class="section-label">Что истощало</div>
         ${renderVD(vampires, 'neg', 'Забирали энергию')}
 
         <div class="section-label">Что наполняло</div>
         ${renderVD(donors, 'pos', 'Давали энергию')}
 
-        <div class="section-label">04 / Мои привычки</div>
+        <div class="section-label">Мои привычки</div>
         ${MonthScreen.habitsReview(p)}
         <details class="review-card"><summary>Подробнее по сферам жизни</summary>${MonthScreen.renderSphereEnergy(DB.getSphereEnergy(state.week,state.week),true)}</details>
-        <div class="section-label">Рефлексия</div>
-        ${WEEK_QUESTIONS.map(({ key, q }) => `
-          <div class="reflection-card">
-            <div class="ref-q">${q}</div>
-            <textarea class="ref-input" data-key="${key}" placeholder="Напишите своё наблюдение...">${escHtml(refl[key] || '')}</textarea>
-          </div>
-        `).join('')}
+        <div class="section-label">Наблюдения недели</div>
+        <div class="review-card">${observations(p,donors,vampires)}</div>
+        <div class="section-label">Заметка недели · необязательно</div>
+        <div class="reflection-card"><textarea class="ref-input" data-key="note" placeholder="Что хочется запомнить об этой неделе?">${escHtml(refl.note||'')}</textarea></div>
+        ${WEEK_QUESTIONS.some(q=>refl[q.key])?'<details class="review-card"><summary>Предыдущие ответы</summary>'+WEEK_QUESTIONS.filter(q=>refl[q.key]).map(q=>'<div class="ref-q">'+q.q+'</div><textarea class="ref-input" data-key="'+q.key+'">'+escHtml(refl[q.key])+'</textarea>').join('')+'</details>':''}
 
       </div>
     `;
@@ -79,6 +77,13 @@ const WeekScreen = (() => {
     bindWeekEvents();
   }
 
+  function observations(p,donors,vampires){
+    const lines=[];
+    if(state.week>1){const prev=MonthScreen.period(state.week-1,state.week-1);if(p.days.length>=3&&prev.days.length===p.days.length&&p.dates.length===prev.dates.length){const delta=p.total-prev.total;lines.push('Баланс энергии относительно предыдущей недели: '+MonthScreen.fmt(delta)+' баллов.');}}
+    if(p.days.length>=2&&donors.length)lines.push('Главный источник положительной энергии: '+escHtml(donors[0].name)+' ('+MonthScreen.fmt(donors[0].score)+').');
+    if(p.days.length>=2&&vampires.length)lines.push('Наибольшая потеря энергии: '+escHtml(vampires[0].name)+' ('+MonthScreen.fmt(vampires[0].score)+').');
+    return lines.length?lines.map(x=>'<p>'+x+'</p>').join(''):'<p>Наблюдения появятся, когда будет больше оценок энергии.</p>';
+  }
   function renderVD(items, type, title) {
     const icon = type === 'neg'
       ? `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/><line x1="3" y1="3" x2="21" y2="21" style="display:${type==='neg'?'block':'none'}"/></svg>`

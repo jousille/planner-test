@@ -24,7 +24,7 @@ const MonthScreen = (() => {
     const fmt=n=>presencePercent?(days?Math.round(n/days*100)+'%':'−'):n+' из '+days;
     const pt=(r,i)=>[150+r*Math.sin(i*2*Math.PI/7),145-r*Math.cos(i*2*Math.PI/7)];
     const points=SPHERES.map((s,i)=>pt(100*stats[s.id][presenceMode]/Math.max(1,days),i).join(',')).join(' ');
-    return '<div class="presence-controls">'+[['all','Всё'],['tasks','Дела'],['habits','Привычки']].map(([k,v])=>'<button type="button" data-presence="'+k+'" aria-pressed="'+(k===presenceMode)+'">'+v+'</button>').join('')+'</div>'+
+    return '<div class="presence-controls">'+[['all','Всё'],['tasks','Дела и события'],['habits','Привычки']].map(([k,v])=>'<button type="button" data-presence="'+k+'" aria-pressed="'+(k===presenceMode)+'">'+v+'</button>').join('')+'</div>'+
       '<div class="wheel-wrap"><svg viewBox="0 0 300 290" class="balance-wheel">'+[25,50,75,100].map(r=>'<circle cx="150" cy="145" r="'+r+'" fill="none" stroke="#B58E8E" stroke-opacity=".35"/>').join('')+
       SPHERES.map((s,i)=>{const [x,y]=pt(100,i);return '<line x1="150" y1="145" x2="'+x+'" y2="'+y+'" stroke="#B58E8E" stroke-opacity=".35"/>';}).join('')+
       '<polygon points="'+points+'" fill="#B58E8E" fill-opacity=".25" stroke="#B58E8E" stroke-width="1.5"/>'+
@@ -180,7 +180,7 @@ const MonthScreen = (() => {
       <div class="page-header">
         <div class="eyebrow">Итоги</div>
         <div class="title">${capitalize(monthName)}</div>
-        <div class="subtitle">${totalTasks} дел · 4 недели</div>
+        <div class="subtitle">${totalTasks} записей · 4 недели</div>
       </div>
 
       <div class="strip">
@@ -197,27 +197,23 @@ const MonthScreen = (() => {
 
       <div class="page-content">
 
-        <div class="section-label">01 / Месяц в цифрах</div>
+        <div class="section-label">Месяц в цифрах</div>
         ${balance(p)}
-        <div class="stat-grid"><div class="stat-card"><div class="sc-label">Записано дел</div><div class="sc-value">${p.tasks}</div></div><div class="stat-card"><div class="sc-label">Отметок привычек</div><div class="sc-value">${p.marks}</div></div></div>
-        <div class="section-label">02 / Динамика энергии</div>
+        <div class="stat-grid"><div class="stat-card"><div class="sc-label">Записей за период</div><div class="sc-value">${p.tasks}</div></div><div class="stat-card"><div class="sc-label">Отметок привычек</div><div class="sc-value">${p.marks}</div></div></div>
+        <div class="section-label">Динамика энергии</div>
         ${chart([1,2,3,4].map(w=>{const x=period(w,w);return x.days.length?x.total:null;}),['Нед 1','Нед 2','Нед 3','Нед 4'])}
         <div class="section-label">Колесо сфер жизни</div>
         <div class="sc-sub">В какие дни сферы присутствовали в моей жизни</div>
         <div id="month-presence">${renderPresence()}</div>
         ${renderSphereEnergy(DB.getSphereEnergy(), true)}
-        <div class="section-label">05 / Привычки за месяц</div>
+        <div class="section-label">Привычки за месяц</div>
         ${habitsReview(p)}
         <details class="review-card"><summary>Источники энергии за месяц</summary>${renderVD(donors,'pos','Что наполняло')}${renderVD(vampires,'neg','Что истощало')}</details>
-        <div class="section-label">06 / Мои наблюдения</div>
+        <div class="section-label">Мои наблюдения</div>
         <div class="review-card">${p.days.length>=2?'<p>Самая ресурсная из заполненных дат: '+p.days.reduce((a,b)=>a.total>=b.total?a:b).date+' ('+fmt(Math.max(...p.days.map(d=>d.total)))+').</p>':'<p>Пока недостаточно оценок для сравнения.</p>'}${p.rows.length?'<p>Наиболее регулярная привычка: '+escHtml([...p.rows].sort((a,b)=>b.pct-a.pct)[0].name)+'.</p>':''}</div>
-        <div class="section-label">Выводы о себе</div>
-        ${MONTH_QUESTIONS.map(({ key, q }) => `
-          <div class="reflection-card">
-            <div class="ref-q">${q}</div>
-            <textarea class="ref-input" data-key="${key}" placeholder="Ваш вывод...">${escHtml(refl[key] || '')}</textarea>
-          </div>
-        `).join('')}
+        <div class="section-label">Завершая месяц</div>
+        ${[{key:'insight_v2',q:'Что я поняла о себе?'},{key:'more_less_v2',q:'Чего хочется больше, а чего меньше?'},{key:'focus_v2',q:'Мой фокус на следующий месяц'}].map(({key,q})=>'<div class="reflection-card"><div class="ref-q">'+q+'</div><textarea class="ref-input" data-key="'+key+'" placeholder="Можно оставить пустым">'+escHtml(refl[key]||'')+'</textarea></div>').join('')}
+        ${MONTH_QUESTIONS.some(q=>refl[q.key])?'<details class="review-card"><summary>Предыдущие ответы</summary>'+MONTH_QUESTIONS.filter(q=>refl[q.key]).map(q=>'<div class="ref-q">'+q.q+'</div><textarea class="ref-input" data-key="'+q.key+'">'+escHtml(refl[q.key])+'</textarea>').join('')+'</details>':''}
 
       </div>
     `;
@@ -267,7 +263,7 @@ const MonthScreen = (() => {
       const balance='<span class="sphere-energy-value '+(r.total<0?'neg':'pos')+'">'+fmt(r.total)+'</span>';
       const title='<span>'+r.emoji+' '+r.name+'</span>'+balance;
       if(!detailed)return '<div class="sphere-energy-card"><div class="sphere-energy-head">'+title+'</div><div class="sphere-energy-track"><div class="sphere-energy-bar '+(r.total<0?'neg':'pos')+'" style="width:'+Math.abs(r.total)/max*100+'%"></div></div></div>';
-      return '<details class="sphere-energy-card"><summary class="sphere-energy-head">'+title+'</summary><div class="sphere-energy-meta">Получено +'+r.positive+' · Потрачено −'+r.negative+'</div><div class="sphere-energy-items">'+r.items.map(i=>'<div class="sphere-energy-head"><span>'+escHtml(i.name)+' <small>'+ (i.kind==='habit'?'Привычка':'Дело')+' · '+i.count+'</small></span><span>'+fmt(i.score)+'</span></div>').join('')+'</div></details>';
+      return '<details class="sphere-energy-card"><summary class="sphere-energy-head">'+title+'</summary><div class="sphere-energy-meta">Получено +'+r.positive+' · Потрачено −'+r.negative+'</div><div class="sphere-energy-items">'+r.items.map(i=>'<div class="sphere-energy-head"><span>'+escHtml(i.name)+' <small>'+ (i.kind==='habit'?'Привычка':'Запись')+' · '+i.count+'</small></span><span>'+fmt(i.score)+'</span></div>').join('')+'</div></details>';
     }).join(''));
   }
   return { render, renderSphereEnergy, period, balance, chart, habitsReview, fmt };

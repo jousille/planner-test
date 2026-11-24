@@ -72,8 +72,8 @@ const DayScreen = (() => {
       </div>
 
       <div class="page-content">
-        <div class="section-label">Дела: ${breakdown.tasks > 0 ? "+" : ""}${breakdown.tasks} · Привычки: +${breakdown.habits}</div>
-        <div class="section-label">Дела дня</div>
+        <div class="section-label">Дела и события: ${breakdown.tasks > 0 ? "+" : ""}${breakdown.tasks} · Привычки: +${breakdown.habits}</div>
+        <div class="section-label">Дела и события</div>
         <div class="task-list" id="task-list">
           ${renderTasks(tasks)}
         </div>
@@ -82,10 +82,10 @@ const DayScreen = (() => {
           <div class="add-task-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </div>
-          <span class="add-task-text">Добавить дело</span>
+          <span class="add-task-text">Добавить запись</span>
         </button>` : ''}
 
-        ${tasks.length < 14 ? '<button type="button" class="library-open" id="task-library">Выбрать дело из библиотеки</button>' : ''}
+        ${tasks.length < 14 ? '<button type="button" class="library-open" id="task-library">Выбрать из библиотеки</button>' : ''}
         ${renderHabitsSection(DB.localDate(dayDate))}
       </div>
     `;
@@ -95,7 +95,7 @@ const DayScreen = (() => {
 
   function renderTasks(tasks) {
     if (tasks.length === 0) {
-      return `<div class="empty-state">Нет записей.<br>Добавьте первое дело дня.</div>`;
+      return `<div class="empty-state">Нет записей.<br>Добавьте первую запись.</div>`;
     }
     return tasks.map(t => renderTaskRow(t)).join('');
   }
@@ -110,7 +110,7 @@ const DayScreen = (() => {
     return `
       <div class="task-row ${isSelected ? 'selected' : ''}" data-id="${task.id}">
         <div class="task-info">
-          <div class="task-name" contenteditable="true" data-placeholder="Название дела" data-id="${task.id}">${escHtml(task.name)}</div>
+          <div class="task-name" contenteditable="true" data-placeholder="Что происходило?" data-id="${task.id}">${escHtml(task.name)}</div>
           ${DB.SPHERES.some(s=>s.id===task.sphereId) ? '<div class="task-sphere">'+DB.SPHERES.find(s=>s.id===task.sphereId).name+'</div>' : ''}
         </div>
         <div class="score-chip ${chipClass}" data-id="${task.id}">${chipLabel}</div>
@@ -120,7 +120,7 @@ const DayScreen = (() => {
       <div class="task-delete-row">
         <button class="task-delete-btn" data-delete="${task.id}">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-          Удалить дело
+          Удалить запись
         </button>
       </div>` : ''}
     `;
@@ -240,7 +240,7 @@ const DayScreen = (() => {
   function openTaskLibrary(){
     if(document.getElementById('task-library-modal'))return;
     const wrap=document.createElement('div');wrap.id='task-library-modal';wrap.className='modal-bg open';
-    wrap.innerHTML='<div class="modal"><h3>Библиотека дел</h3><p class="library-hint">Идеи, а не обязательный список.</p><select aria-label="Сфера жизни">'+DB.SPHERES.map(s=>'<option value="'+s.id+'">'+s.emoji+' '+s.name+'</option>').join('')+'</select><div class="library-list"></div><button type="button" class="library-open" id="library-close">Закрыть</button></div>';
+    wrap.innerHTML='<div class="modal"><h3>Библиотека дел и событий</h3><p class="library-hint">Идеи, а не обязательный список.</p><select aria-label="Сфера жизни">'+DB.SPHERES.map(s=>'<option value="'+s.id+'">'+s.emoji+' '+s.name+'</option>').join('')+'</select><div class="library-list"></div><button type="button" class="library-open" id="library-close">Закрыть</button></div>';
     const select=wrap.querySelector('select'),list=wrap.querySelector('.library-list');
     function show(){list.replaceChildren();for(const name of DB.LIBRARY[select.value][1]){const b=document.createElement('button');b.type='button';b.textContent=name+' +';b.onclick=()=>{if(DB.getTasks(state.week,state.day).length>=14)return;const tasks=DB.addTask(state.week,state.day,name,null,select.value);state.selectedTaskId=tasks[tasks.length-1].id;wrap.remove();render();};list.appendChild(b);}}
     select.onchange=show;wrap.querySelector('#library-close').onclick=()=>wrap.remove();wrap.onclick=e=>{if(e.target===wrap)wrap.remove();};document.body.appendChild(wrap);show();
