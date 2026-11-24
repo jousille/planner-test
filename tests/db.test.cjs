@@ -77,3 +77,13 @@ test('malformed import does not mutate data',()=>{
   assert.throws(()=>db.importAllData('{"version":3,"data":{}}'));
   assert.equal(JSON.stringify([...store.entries()]),snapshot);
 });
+
+test('zero energy habit is saved and counted without changing energy',()=>{
+ const {db}=setup();
+ db.addHabit({name:'Neutral',sphereId:'energy',energy:0});
+ const h=db.getHabits().find(h=>h.name==='Neutral');
+ assert.equal(h.energy,0);
+ db.toggleCompletionByDate(h.id,db.localDate());
+ assert.equal(db.getCompletionsForDate(db.localDate())[h.id],true);
+ assert.equal(db.getHabitsEnergyForDate(db.localDate()),0);
+});
