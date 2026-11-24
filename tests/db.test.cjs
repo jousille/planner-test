@@ -134,3 +134,5 @@ test('sphere presence counts unique days, neutral tasks, archived habits and uni
  assert.equal(db.getSpherePresence().days,1);
  assert.equal(db.getSpherePresence().stats.love.all,0);
 });
+
+test('scheduled habits respect weekdays and weekly caps',()=>{const {db}=setup();const dates=['2020-11-23','2020-11-24','2020-11-25','2020-11-26'];const h={id:1,createdOn:dates[0],schedule:'days',weekdays:[0,2]};db.saveHabits([h]);assert.equal(db.isHabitEligible(h,dates[1]),false);db.toggleCompletionByDate(1,dates[0]);assert.equal(db.habitProgress(h,dates).total,2);assert.equal(db.habitProgress(h,dates).done,1);const w={...h,schedule:'weekly',weeklyTarget:2};db.saveHabits([w]);db.toggleCompletionByDate(1,dates[1]);db.toggleCompletionByDate(1,dates[2]);assert.equal(db.habitProgress(w,dates).pct,100);assert.equal(db.habitProgress(w,dates).done,2);});

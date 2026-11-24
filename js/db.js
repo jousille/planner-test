@@ -282,9 +282,9 @@ const DB = (() => {
     localStorage.setItem(key('habits'), JSON.stringify(habits));
   }
 
-  function addHabit({ name, sphereId, energy }) {
+  function addHabit({ name, sphereId, energy, schedule='daily', weekdays=[], weeklyTarget=3, startDate=localDate() }) {
     const habits = getHabits();
-    habits.push({ id: Date.now(), name, sphereId, energy: energy ?? 3, createdAt: new Date().toISOString(), createdOn: localDate() });
+    habits.push({ id: Date.now(), name, sphereId, energy: energy ?? 3, createdAt: new Date().toISOString(), createdOn: localDate(), startDate, schedule, weekdays, weeklyTarget });
     saveHabits(habits);
     return habits;
   }
@@ -350,7 +350,7 @@ const DB = (() => {
   function toggleCompletionByDate(id,dateStr) { return writeToggle(id,dateStr); }
   function isHabitEligible(h,dateStr) {
     const created = h.createdOn || (h.createdAt ? localDate(new Date(h.createdAt)) : '2000-01-01');
-    return dateStr >= created && (!h.archived || (h.archivedOn && dateStr <= h.archivedOn));
+    return dateStr >= (h.startDate || created) && (h.schedule !== 'days' || (h.weekdays || []).includes((parseDate(dateStr).getDay()+6)%7)) && (!h.archived || (h.archivedOn && dateStr <= h.archivedOn));
   }
   function getHabitsEnergyForDate(dateStr) {
     const comp = getCompletionsForDate(dateStr);
@@ -375,22 +375,31 @@ const DB = (() => {
     return {days,stats};
   }
 
+  function habitProgress(h, dates) {
+    let done=0,total=0;
+    const groups=new Map();
+    for(const date of dates){
+      if(date>localDate())continue;
+      const marked=Boolean(getCompletionsForDate(date)[h.id]);
+      if(!marked&&!isHabitEligible(h,date))continue;
+      const k=localDate(monday(date));
+      const g=groups.get(k)||{done:0,total:0};
+      g.total++;if(marked)g.done++;groups.set(k,g);
+    }
+    for(const g of groups.values()){
+      const target=h.schedule==='weekly'?Math.min(g.total,Math.max(1,Math.min(7,Number(h.weeklyTarget)||3))):g.total;
+      total+=target;done+=Math.min(target,g.done);
+    }
+    return {done,total,pct:total?Math.round(done/total*100):0};
+  }
   function getHabitsSphereStats(monthIdx = getCurrentMonthIndex()) {
     const stats = {};
     const today = localDate();
     const meta = monthIdx === getCurrentMonthIndex() ? {} : getMonthMeta(monthIdx);
     const end = meta.archivedAt ? localDate(new Date(meta.archivedAt)) : today;
-    for (let w=1;w<=4;w++) for(let d=1;d<=7;d++) {
-      const date = dateForDay(w,d,monthIdx);
-      if (!date || date>today || date>end) continue;
-      const comp = getCompletionsForDate(date);
-      for (const h of getHabits()) {
-        if (!comp[h.id] && !isHabitEligible(h,date)) continue;
-        const st = stats[h.sphereId] ||= {done:0,total:0,pct:0};
-        st.total++;
-        if(comp[h.id]) st.done++;
-      }
-    }
+    const dates=[];
+    for(let w=1;w<=4;w++)for(let day=1;day<=7;day++){const date=dateForDay(w,day,monthIdx);if(date&&date<=today&&date<=end)dates.push(date);}
+    for(const h of getHabits()){const p=habitProgress(h,dates);if(!p.total)continue;const st=stats[h.sphereId]||={done:0,total:0,pct:0};st.done+=p.done;st.total+=p.total;}
     for(const st of Object.values(stats)) st.pct = Math.round(100*st.done/st.total);
     return stats;
   }
@@ -450,7 +459,7 @@ const DB = (() => {
   }
 
   return {
-    SPHERES, normalizeSphere, init, getToken, localDate, parseDate, dateForDay, getDayBreakdown, isHabitEligible,
+    SPHERES, normalizeSphere, init, getToken, localDate, parseDate, dateForDay, getDayBreakdown, isHabitEligible, habitProgress,
     getTasks, saveTasks, addTask, updateTask, deleteTask,
     getHabits, saveHabits, addHabit, deleteHabit, archiveHabit,
     getCompletionsForWeek, toggleCompletion,
