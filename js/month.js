@@ -30,7 +30,7 @@ const MonthScreen = (() => {
     return {entries,recorded,spheres:[...spheres.values()]};
   }
   function observations(p,data){
-    return Insights.select(Insights.analyze({entries:data.entries,dates:p.dates,settings:DB.settings(),habits:p.rows,spheres:data.spheres})).map(x=>[x.title,x.body,x.proof]);
+    return Insights.select(Insights.analyze({entries:data.entries,dates:p.dates,settings:DB.settings(),habits:p.rows,spheres:data.spheres,habitDetails:DB.settings().habits?DB.getHabits().map(h=>({...h,halves:[DB.habitProgress(h,p.dates.slice(0,14)),DB.habitProgress(h,p.dates.slice(14))],weeks:Array.from({length:4},(_,i)=>DB.habitProgress(h,p.dates.slice(i*7,i*7+7))),timeline:p.dates.map(date=>({date,eligible:DB.isHabitEligible(h,date),done:Boolean(DB.getCompletionsForDate(date)[h.id])}))})):[]})).map(x=>[x.title,x.body,x.proof]);
   }
   function sphereList(data){
     const s=DB.settings();
