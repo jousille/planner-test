@@ -147,8 +147,8 @@ const MonthScreen = (() => {
   function fmt(n){return n===null?'−':n>0?'+'+n:n<0?'−'+Math.abs(n):'0';}
   function balance(p){return '<div class="review-card review-center"><div class="sc-label">Баланс энергии</div><div class="review-big '+(p.total<0?'review-neg':'review-pos')+'">'+fmt(p.days.length?p.total:null)+'</div><div class="review-pair"><span class="review-pos">Получено '+fmt(p.positive)+'</span><span class="review-neg">Потрачено '+fmt(-p.negative)+'</span></div><div class="review-track"><i style="width:'+(100*p.positive/Math.max(1,p.positive+p.negative))+'%"></i><b style="width:'+(100*p.negative/Math.max(1,p.positive+p.negative))+'%"></b></div><div class="sc-sub">Дней с оценками: '+p.days.length+' из '+p.dates.length+'</div></div>';}
   function chart(values,labels){
-    const max=Math.max(1,...values.filter(n=>n!==null).map(Math.abs)),step=280/values.length;
-    return '<div class="review-card"><svg viewBox="0 0 320 150" width="100%" role="img" aria-label="Динамика энергии"><line x1="12" y1="70" x2="308" y2="70" stroke="#D4B8B8"/>'+values.map((n,i)=>{const x=20+step*(i+.5),h=n===null?0:Math.abs(n)/max*48;return (n===null?'': '<rect x="'+(x-10)+'" y="'+(n>=0?70-h:70)+'" width="20" height="'+Math.max(1,h)+'" rx="3" fill="'+(n>=0?'#8DA787':'#C99489')+'"/>')+'<text x="'+x+'" y="'+(n===null?65:n>=0?65-h:82+h)+'" text-anchor="middle" font-size="10" fill="#6B4E4E">'+fmt(n)+'</text><text x="'+x+'" y="145" text-anchor="middle" font-size="10" fill="#6B4E4E">'+labels[i]+'</text>';}).join('')+'</svg><div class="sc-sub">− нет оценок энергии</div></div>';
+    const max=Math.max(1,...values.filter(n=>typeof n==='number').map(Math.abs)),step=280/values.length;
+    return '<div class="review-card"><svg viewBox="0 0 320 150" width="100%" role="img" aria-label="Динамика энергии"><line x1="12" y1="70" x2="308" y2="70" stroke="#D4B8B8"/>'+values.map((n,i)=>{const x=20+step*(i+.5),h=n==null?0:Math.abs(n)/max*48;return (n==null||n===0?'': '<rect x="'+(x-10)+'" y="'+(n>=0?70-h:70)+'" width="20" height="'+Math.max(1,h)+'" rx="3" fill="'+(n>=0?'#8DA787':'#C99489')+'"/>')+'<text x="'+x+'" y="'+(n==null?65:n>=0?65-h:82+h)+'" text-anchor="middle" font-size="10" fill="#6B4E4E">'+ (n===undefined?'':fmt(n))+'</text><text x="'+x+'" y="145" text-anchor="middle" font-size="10" fill="#6B4E4E">'+labels[i]+'</text>';}).join('')+'</svg>'+(values.includes(null)?'<div class="sc-sub">'+(values.length===7?'Дни':'Недели')+' без оценок обозначены прочерком</div>':'')+'</div>';
   }
   function habitsReview(p){return '<div class="review-card"><div class="review-big">'+(p.pct===null?'−':p.pct+'%')+'</div><div class="sc-sub">'+p.done+' из '+p.target+' запланированных выполнений</div>'+p.rows.map(h=>'<div class="review-habit"><span>'+escHtml(h.name)+'</span><span>'+h.done+'/'+h.total+'</span></div><div class="ssr-track"><div class="ssr-fill" style="width:'+h.pct+'%;background:#B58E8E"></div></div>').join('')+'</div>';}
   function render() {
@@ -202,7 +202,7 @@ const MonthScreen = (() => {
         <div class="stat-grid"><div class="stat-card" ${DB.settings().tasks?'':'hidden'}><div class="sc-label">Записей за период</div><div class="sc-value">${p.tasks}</div></div><div class="stat-card" ${DB.settings().habits?'':'hidden'}><div class="sc-label">Отметок привычек</div><div class="sc-value">${p.marks}</div></div></div>
         <div ${DB.settings().energy?'':'hidden'}>
         <div class="section-label">Динамика энергии</div>
-        ${chart([1,2,3,4].map(w=>{const x=period(w,w);return x.days.length?x.total:null;}),['Нед 1','Нед 2','Нед 3','Нед 4'])}
+        ${chart([1,2,3,4].map(w=>{const x=period(w,w);return !x.dates.length?undefined:x.days.length?x.total:null;}),['Нед 1','Нед 2','Нед 3','Нед 4'])}
         </div>
         <div ${DB.settings().spheres&&DB.settings().tasks&&DB.settings().habits?'':'hidden'}>
         <div class="section-label">Колесо сфер жизни</div>

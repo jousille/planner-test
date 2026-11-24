@@ -56,7 +56,7 @@ const WeekScreen = (() => {
         <div class="section-label">Энергия недели</div>
         ${MonthScreen.balance(p)}
         <div class="section-label">Как прошла неделя</div>
-        ${MonthScreen.chart(Array.from({length:7},(_,i)=>p.days.find(d=>d.d===i+1)?.total??null),Array.from({length:7},(_,i)=>DB.parseDate(DB.dateForDay(state.week,i+1)).toLocaleDateString('ru-RU',{weekday:'short'})))}
+        ${MonthScreen.chart(Array.from({length:7},(_,i)=>DB.dateForDay(state.week,i+1)>DB.localDate()?undefined:(p.days.find(d=>d.d===i+1)?.total??null)),Array.from({length:7},(_,i)=>DB.parseDate(DB.dateForDay(state.week,i+1)).toLocaleDateString('ru-RU',{weekday:'short'})))}
         ${vampires.length?'<div class="section-label">Что истощало</div>'+renderVD(vampires,'neg','Забирали энергию'):''}
         ${donors.length?'<div class="section-label">Что наполняло</div>'+renderVD(donors,'pos','Давали энергию'):''}
 
