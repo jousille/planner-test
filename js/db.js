@@ -3,6 +3,16 @@
 const DB = (() => {
 
   let _token = null;
+  const SPHERES = Object.freeze([
+    {id:'energy',emoji:'🔥',name:'Энергия и тело'},
+    {id:'self',emoji:'💛',name:'Я и только я'},
+    {id:'work',emoji:'💼',name:'Дело и деньги'},
+    {id:'love',emoji:'💞',name:'Отношения'},
+    {id:'home',emoji:'🏡',name:'Пространство'},
+    {id:'growth',emoji:'🌱',name:'Саморазвитие'},
+    {id:'values',emoji:'✨',name:'Ценности'}
+  ].map(Object.freeze));
+  function normalizeSphere(id) { return SPHERES.some(s=>s.id===id) ? id : null; }
 
   function init(token) { _token = token; }
 
@@ -32,9 +42,9 @@ const DB = (() => {
     localStorage.setItem(monthKey(mi, 'tasks', week, day), JSON.stringify(tasks));
   }
 
-  function addTask(week, day, name, score) {
+  function addTask(week, day, name, score, sphereId = null) {
     const tasks = getTasks(week, day);
-    tasks.push({ id: Date.now(), name, score });
+    tasks.push({ id: Date.now(), name, score, sphereId: normalizeSphere(sphereId) });
     saveTasks(week, day, tasks);
     return tasks;
   }
@@ -42,7 +52,7 @@ const DB = (() => {
   function updateTask(week, day, id, fields) {
     const tasks = getTasks(week, day);
     const idx = tasks.findIndex(t => t.id === id);
-    if (idx !== -1) Object.assign(tasks[idx], fields);
+    if (idx !== -1) Object.assign(tasks[idx], fields, Object.hasOwn(fields,'sphereId') ? {sphereId:normalizeSphere(fields.sphereId)} : {});
     saveTasks(week, day, tasks);
     return tasks;
   }
@@ -90,6 +100,27 @@ const DB = (() => {
   }
   function getDayScore(week, day, monthIdx) {
     return getDayBreakdown(week,day,monthIdx).total;
+  }
+
+  function getSphereEnergy(weekFrom=1,weekTo=4,monthIdx=getCurrentMonthIndex()) {
+    const rows = new Map([...SPHERES,{id:null,name:'Без категории',emoji:''}].map(s=>[s.id,{...s,positive:0,negative:0,total:0,count:0,items:[]}]));
+    function add(entry,kind) {
+      const row=rows.get(normalizeSphere(entry.sphereId));
+      const score=Number(entry.score)||0;
+      row.positive+=Math.max(0,score); row.negative+=Math.max(0,-score);
+      row.total+=score; row.count++;
+      const name=entry.name||'Без названия';
+      let item=row.items.find(i=>i.name===name && i.kind===kind);
+      if(!item){item={name,kind,score:0,count:0};row.items.push(item);}
+      item.score+=score;item.count++;
+    }
+    const habits=getHabits();
+    for(let w=weekFrom;w<=weekTo;w++) for(let d=1;d<=7;d++){
+      getTasks(w,d,monthIdx).forEach(t=>add(t,'task'));
+      const date=dateForDay(w,d,monthIdx);
+      if(date){const comp=getCompletionsForDate(date);habits.filter(h=>comp[h.id]).forEach(h=>add({...h,score:h.energy},'habit'));}
+    }
+    return [...rows.values()].filter(r=>r.count);
   }
 
   function getWeekScore(week, monthIdx) {
@@ -400,14 +431,14 @@ const DB = (() => {
   }
 
   return {
-    init, getToken, localDate, parseDate, dateForDay, getDayBreakdown, isHabitEligible,
+    SPHERES, normalizeSphere, init, getToken, localDate, parseDate, dateForDay, getDayBreakdown, isHabitEligible,
     getTasks, saveTasks, addTask, updateTask, deleteTask,
     getHabits, saveHabits, addHabit, deleteHabit, archiveHabit,
     getCompletionsForWeek, toggleCompletion,
     getCompletionsForDate, toggleCompletionByDate, getHabitsEnergyForDate,
     getHabitsSphereStats,
     getReflection, saveReflection,
-    getDayScore, getWeekScore,
+    getDayScore, getWeekScore, getSphereEnergy,
     getWeekVampires, getWeekDonors,
     getMonthVampires, getMonthDonors,
     getTodayPosition,
