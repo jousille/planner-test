@@ -806,3 +806,5 @@ details.sphere-energy-card[open] summary::after { content:'⌃'; }
 .review-card svg text{font-family:var(--font-sans)}
 
 .settings-intro{background:#F5ECEC;border-radius:10px;padding:12px 14px;margin-bottom:10px;color:#6B4E4E;font-size:12px;line-height:1.5}.settings-intro strong,.settings-intro span{display:block}.settings-intro strong{font-weight:500;font-size:13px;margin-bottom:3px}
+
+.stat-card .sc-value.review-pos{color:#52754B}.stat-card .sc-value.review-neg{color:#A66A60}.month-spheres{margin:12px 0}.month-sphere-row{display:grid;grid-template-columns:minmax(0,1fr) 36px 65px;gap:8px;align-items:center;padding:10px 0;border-bottom:1px solid #EDD8D8;font-size:14px;font-variant-numeric:tabular-nums}.month-sphere-row>span:not(:first-child){text-align:right}.month-sphere-name{display:flex;align-items:center;gap:7px;min-width:0}.month-sphere-name>span:last-child{overflow-wrap:anywhere}.month-sphere-head{font-size:11px;color:#8D6D6D;padding:6px 0}.month-spheres.no-energy .month-sphere-row{grid-template-columns:minmax(0,1fr) 36px}.month-sphere-row:last-child{border-bottom:0}

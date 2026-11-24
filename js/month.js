@@ -42,7 +42,10 @@ const MonthScreen = (() => {
     if(s.spheres){const dates=new Set(data.spheres.flatMap(x=>[...x.dates]));if(dates.size>=7){const rows=data.spheres.filter(x=>x.dates.size).sort((a,b)=>b.dates.size-a.dates.size);const top=rows.filter(x=>x.dates.size===rows[0].dates.size);out.push(['Моё внимание',top.map(x=>x.name).join(', ')+' − чаще всего в записях: '+top[0].dates.size+' дн.','Учитываются уникальные дни, а не количество записей.']);}}
     return out.slice(0,5);
   }
-  function sphereList(data){const s=DB.settings();return data.spheres.map(x=>'<div class="review-habit"><span>'+x.emoji+' '+x.name+'</span><span>'+x.dates.size+' дн.'+(s.energy?' · '+(x.scores.length?fmt(x.scores.reduce((a,b)=>a+b,0)):'−'):'')+'</span></div>').join('')+'<div class="sc-sub">Дни присутствия в записях, не оценка качества жизни.</div>';}
+  function sphereList(data){
+    const s=DB.settings();
+    return '<div class="month-spheres '+(s.energy?'':'no-energy')+'"><div class="month-sphere-row month-sphere-head"><span>Сфера</span><span>Дни</span>'+(s.energy?'<span>Энергия</span>':'')+'</div>'+data.spheres.map(x=>{const n=x.scores.length?x.scores.reduce((a,b)=>a+b,0):null;return '<div class="month-sphere-row"><span class="month-sphere-name"><span>'+x.emoji+'</span><span>'+escHtml(x.name)+'</span></span><span>'+x.dates.size+'</span>'+(s.energy?'<span class="'+(n>0?'review-pos':n<0?'review-neg':'')+'">'+fmt(n)+'</span>':'')+'</div>';}).join('')+'</div><div class="sc-sub">Дни присутствия в записях, не оценка качества жизни.</div>';
+  }
   function period(from=1,to=4){
     const days=[],dates=[];let tasks=0,marks=0,positive=0,negative=0;
     const settings=DB.settings();const habits=settings.habits?DB.getHabits():[];
@@ -99,7 +102,7 @@ const MonthScreen = (() => {
       <div class="page-content">
         <div class="section-label">Главное за месяц</div>
         <div class="stat-grid">
-        ${settings.energy?'<div class="stat-card"><div class="sc-label">Баланс энергии</div><div class="sc-value">'+fmt(p.days.length?p.total:null)+'</div></div>':''}
+        ${settings.energy?'<div class="stat-card"><div class="sc-label">Баланс энергии</div><div class="sc-value '+(p.days.length&&p.total>0?'review-pos':p.days.length&&p.total<0?'review-neg':'')+'">'+fmt(p.days.length?p.total:null)+'</div></div>':''}
         ${settings.habits?'<div class="stat-card"><div class="sc-label">Регулярность привычек</div><div class="sc-value">'+(p.pct===null?'−':p.pct+'%')+'</div></div>':''}
         </div>
         <div class="sc-sub">Записи в ${data.recorded.size} из ${p.dates.length} дней</div>
