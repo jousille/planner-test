@@ -217,7 +217,7 @@ const HabitsScreen = (() => {
     wrap.innerHTML = `
       <div class="modal">
         <h3>Новая привычка</h3>
-        <label>Название</label>
+        <button type="button" class="library-open" id="hab-library">Выбрать из библиотеки</button><div id="hab-library-panel" hidden></div><label>Название</label>
         <input type="text" id="hab-name-input" placeholder="Например: Вечерняя прогулка" autocomplete="off">
         <label>Сфера жизни</label>
         <div class="sphere-chips" id="hab-sphere-chips">${sphereChips}</div>
@@ -233,7 +233,13 @@ const HabitsScreen = (() => {
     wrap.addEventListener('click', e => { if (e.target === wrap) closeModal(); });
     document.body.appendChild(wrap);
     wrap.querySelector('#hab-schedule').onchange=e=>{wrap.querySelector('#hab-weekdays').hidden=e.target.value!=='days';wrap.querySelector('#hab-target-wrap').hidden=e.target.value!=='weekly';};
-    setTimeout(() => document.getElementById('hab-name-input').focus(), 100);
+    const panel=wrap.querySelector('#hab-library-panel');
+    wrap.querySelector('#hab-library').onclick=()=>{panel.hidden=!panel.hidden;if(!panel.hidden)showLibrary(SPHERES[0].id);};
+    function showLibrary(id){
+      panel.innerHTML='<select aria-label="Сфера библиотеки">'+SPHERES.map(s=>'<option value="'+s.id+'" '+(s.id===id?'selected':'')+'>'+s.emoji+' '+s.name+'</option>').join('')+'</select><div class="library-list"></div>';
+      panel.querySelector('select').onchange=e=>showLibrary(e.target.value);
+      for(const name of DB.LIBRARY[id][0]){const b=document.createElement('button');b.type='button';b.textContent=name+' +';b.onclick=()=>{wrap.querySelector('#hab-name-input').value=name;selectSphere(wrap.querySelector('[data-sphere="'+id+'"]'));panel.hidden=true;};panel.querySelector('.library-list').appendChild(b);}
+    }
   }
 
   function closeModal() {

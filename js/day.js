@@ -85,6 +85,7 @@ const DayScreen = (() => {
           <span class="add-task-text">Добавить дело</span>
         </button>` : ''}
 
+        ${tasks.length < 14 ? '<button type="button" class="library-open" id="task-library">Выбрать дело из библиотеки</button>' : ''}
         ${renderHabitsSection(DB.localDate(dayDate))}
       </div>
     `;
@@ -218,6 +219,7 @@ const DayScreen = (() => {
       });
     });
 
+    document.getElementById('task-library')?.addEventListener('click',openTaskLibrary);
     // Добавить задачу
     const addBtn = document.getElementById('add-task-btn');
     if (addBtn) {
@@ -233,6 +235,15 @@ const DayScreen = (() => {
         }, 50);
       });
     }
+  }
+
+  function openTaskLibrary(){
+    if(document.getElementById('task-library-modal'))return;
+    const wrap=document.createElement('div');wrap.id='task-library-modal';wrap.className='modal-bg open';
+    wrap.innerHTML='<div class="modal"><h3>Библиотека дел</h3><p class="library-hint">Идеи, а не обязательный список.</p><select aria-label="Сфера жизни">'+DB.SPHERES.map(s=>'<option value="'+s.id+'">'+s.emoji+' '+s.name+'</option>').join('')+'</select><div class="library-list"></div><button type="button" class="library-open" id="library-close">Закрыть</button></div>';
+    const select=wrap.querySelector('select'),list=wrap.querySelector('.library-list');
+    function show(){list.replaceChildren();for(const name of DB.LIBRARY[select.value][1]){const b=document.createElement('button');b.type='button';b.textContent=name+' +';b.onclick=()=>{if(DB.getTasks(state.week,state.day).length>=14)return;const tasks=DB.addTask(state.week,state.day,name,null,select.value);state.selectedTaskId=tasks[tasks.length-1].id;wrap.remove();render();};list.appendChild(b);}}
+    select.onchange=show;wrap.querySelector('#library-close').onclick=()=>wrap.remove();wrap.onclick=e=>{if(e.target===wrap)wrap.remove();};document.body.appendChild(wrap);show();
   }
 
   function moveCursorToEnd(el) {
