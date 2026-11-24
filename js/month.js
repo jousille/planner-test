@@ -30,17 +30,7 @@ const MonthScreen = (() => {
     return {entries,recorded,spheres:[...spheres.values()]};
   }
   function observations(p,data){
-    const s=DB.settings(), out=[], groups=new Map();
-    for(const e of data.entries){if(e.score===null)continue;const key=e.kind+':'+e.name.toLocaleLowerCase('ru');if(!groups.has(key))groups.set(key,{name:e.name,rows:[]});groups.get(key).rows.push(e);}
-    const g=[...groups.values()].filter(x=>new Set(x.rows.map(e=>e.date)).size>=3);
-    for(const sign of [1,-1]){
-      const candidates=g.map(x=>({...x,n:x.rows.filter(e=>e.score*sign>0).length,sum:x.rows.reduce((a,e)=>a+e.score,0)})).filter(x=>x.n/x.rows.length>=.75&&x.sum*sign>0).sort((a,b)=>sign*(b.sum-a.sum));
-      if(candidates.length){const x=candidates[0];out.push([sign>0?'Что наполняет':'Что истощает',x.name+': '+x.n+' из '+x.rows.length+' оценок '+(sign>0?'положительные':'отрицательные')+'.','Баланс '+fmt(x.sum)+'; оценки минимум в 3 разных дня.']);}
-    }
-    if(s.energy){const a=period(1,2),b=period(3,4);if(a.dates.length===14&&b.dates.length===14&&a.days.length>=7&&b.days.length>=7){const x=a.total/a.days.length,y=b.total/b.days.length;if(Math.abs(y-x)>=1)out.push(['Динамика энергии','Средний баланс оценённых дней '+(y>x?'вырос':'снизился')+' с '+fmt(Math.round(x*10)/10)+' до '+fmt(Math.round(y*10)/10)+'.','Первая и вторая половины цикла: '+a.days.length+' и '+b.days.length+' оценённых дней.']);}}
-    if(s.habits&&p.dates.length>=14){const rows=p.rows.filter(h=>h.total>=4);const best=rows.filter(h=>h.pct>=80).sort((a,b)=>b.pct-a.pct)[0],low=rows.filter(h=>h.pct<=40).sort((a,b)=>a.pct-b.pct)[0];if(best)out.push(['Регулярность привычек',best.name+': выполнено '+best.done+' из '+best.total+' запланированных выполнений.','Регулярность '+best.pct+'%.']);if(low)out.push(['График привычек',low.name+': выполнено '+low.done+' из '+low.total+' запланированных выполнений.','Можно пересмотреть удобство графика; регулярность '+low.pct+'%.']);}
-    if(s.spheres){const dates=new Set(data.spheres.flatMap(x=>[...x.dates]));if(dates.size>=7){const rows=data.spheres.filter(x=>x.dates.size).sort((a,b)=>b.dates.size-a.dates.size);const top=rows.filter(x=>x.dates.size===rows[0].dates.size);out.push(['Моё внимание',top.map(x=>x.name).join(', ')+' − чаще всего в записях: '+top[0].dates.size+' дн.','Учитываются уникальные дни, а не количество записей.']);}}
-    return out.slice(0,5);
+    return Insights.select(Insights.analyze({entries:data.entries,dates:p.dates,settings:DB.settings(),habits:p.rows,spheres:data.spheres})).map(x=>[x.title,x.body,x.proof]);
   }
   function sphereList(data){
     const s=DB.settings();
